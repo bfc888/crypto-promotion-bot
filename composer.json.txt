@@ -1,0 +1,24 @@
+{
+    "name": "bfc888/crypto-promotion-bot",
+    "description": "Multi-chain crypto promotion bot with referral system",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.0",
+        "web3p/web3.php": "^0.1.6",
+        "telegram-bot/api": "^2.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "chmod -R 755 scripts/",
+            "mkdir -p logs/ && chmod -R 755 logs/"
+        ]
+    }
+}

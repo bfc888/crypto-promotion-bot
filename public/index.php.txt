@@ -1,0 +1,111 @@
+<?php
+// public/index.php
+
+// 设置错误报告
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// 设置时区
+date_default_timezone_set('Asia/Shanghai');
+
+// 自动加载类
+spl_autoload_register(function ($class) {
+    $file = __DIR__ . '/../app/' . $class . '.php';
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// 加载配置
+$config = require(__DIR__ . '/../config/config.php');
+
+// 处理请求
+try {
+    // 获取请求路径
+    $path = $_SERVER['REQUEST_URI'];
+    $method = $_SERVER['REQUEST_METHOD'];
+
+    // 路由处理
+    switch ($path) {
+        case '/create-order':
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            $payment = new Payment();
+            $result = $payment->createOrder(
+                $data['user_id'],
+                $data['chain']
+            );
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $result
+            ]);
+            break;
+
+        case '/verify-payment':
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            $payment = new Payment();
+            $result = $payment->verifyPayment(
+                $data['order_id'],
+                $data['tx_hash']
+            );
+            
+            echo json_encode([
+                'success' => true,
+                'verified' => $result
+            ]);
+            break;
+
+        case '/generate-referral':
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            $referral = new Referral();
+            $code = $referral->generateReferralCode($data['user_id']);
+            
+            echo json_encode([
+                'success' => true,
+                'code' => $code
+            ]);
+            break;
+
+        case '/referral-stats':
+            if ($method !== 'GET') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $userId = $_GET['user_id'];
+            $referral = new Referral();
+            $stats = $referral->getReferralStats($userId);
+            
+            echo json_encode([
+                'success' => true,
+                'stats' => $stats
+            ]);
+            break;
+
+        default:
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Route not found'
+            ]);
+            break;
+    }
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ]);
+}

@@ -1,0 +1,90 @@
+-- database.sql
+
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS crypto_bot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE crypto_bot;
+
+-- 订单表
+CREATE TABLE orders (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50) UNIQUE,
+    user_id BIGINT,
+    chain VARCHAR(10),
+    amount DECIMAL(18,8),
+    address VARCHAR(100),
+    status VARCHAR(20),
+    tx_hash VARCHAR(100),
+    created_at INT,
+    updated_at INT,
+    INDEX idx_status_created (status, created_at),
+    INDEX idx_user_chain (user_id, chain)
+);
+
+-- 置顶位置表
+CREATE TABLE top_slots (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tier VARCHAR(20),
+    position INT,
+    order_id VARCHAR(50),
+    start_time INT,
+    end_time INT,
+    status VARCHAR(20),
+    INDEX idx_status_end_time (status, end_time)
+);
+
+-- 等待队列表
+CREATE TABLE waiting_list (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tier VARCHAR(20),
+    order_id VARCHAR(50),
+    created_at INT,
+    INDEX idx_tier_created (tier, created_at)
+);
+
+-- 邀请码表
+CREATE TABLE referral_codes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
+    code VARCHAR(8) UNIQUE,
+    created_at INT,
+    INDEX idx_user (user_id),
+    INDEX idx_code (code)
+);
+
+-- 邀请关系表
+CREATE TABLE referral_relationships (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    referrer_id BIGINT,
+    referred_id BIGINT,
+    level INT,
+    created_at INT,
+    INDEX idx_referrer (referrer_id),
+    INDEX idx_referred (referred_id)
+);
+
+-- 返佣记录表
+CREATE TABLE referral_commissions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
+    order_id VARCHAR(50),
+    amount DECIMAL(18,8),
+    chain VARCHAR(10),
+    level INT,
+    status VARCHAR(20),
+    created_at INT,
+    INDEX idx_user_status (user_id, status)
+);
+
+-- 提现记录表
+CREATE TABLE withdrawal_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
+    amount DECIMAL(18,8),
+    chain VARCHAR(10),
+    address VARCHAR(100),
+    status VARCHAR(20),
+    tx_hash VARCHAR(100),
+    created_at INT,
+    updated_at INT,
+    INDEX idx_user_status (user_id, status)
+);

@@ -1,0 +1,127 @@
+<?php
+// app/Monitor.php
+class Monitor {
+    private $db;
+    private $config;
+    private $telegram;
+
+    public function __construct() {
+        $this->config = require(__DIR__ . '/../config/config.php');
+        $this->db = new PDO(
+            "mysql:host=localhost;dbname=crypto_bot",
+            "your_username",
+            "your_password",
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        $this->telegram = new TelegramBot(TELEGRAM_TOKEN);
+    }
+
+    // 主监控循环
+    public function run() {
+        while (true) {
+            try {
+                // 检查支付状态
+                $this->checkPayments();
+                
+                // 检查置顶位置
+                $this->checkTopSlots();
+                
+                // 检查系统性能
+                $this->checkSystemHealth();
+                
+                // 发送统计报告
+                $this->sendDailyReport();
+                
+                sleep(60); // 每分钟检查一次
+                
+            } catch(Exception $e) {
+                error_log("Monitor error: " . $e->getMessage());
+                sleep(5);
+            }
+        }
+    }
+
+    // 检查支付状态
+    private function checkPayments() {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM orders 
+                 WHERE status = 'pending' 
+                 AND created_at < ?"
+            );
+            $stmt->execute([time() - 1800]); // 30分钟超时
+            
+            foreach($stmt->fetchAll() as $order) {
+                $this->handleTimeout($order);
+            }
+            
+        } catch(Exception $e) {
+            error_log("Check payments error: " . $e->getMessage());
+        }
+    }
+
+    // 检查置顶位置
+    private function checkTopSlots() {
+        try {
+            // 检查过期的置顶
+            $stmt = $this->db->prepare(
+                "SELECT * FROM top_slots 
+                 WHERE status = 'active' 
+                 AND end_time < ?"
+            );
+            $stmt->execute([time()]);
+            
+            foreach($stmt->fetchAll() as $slot) {
+                $this->handleExpiredSlot($slot);
+            }
+            
+            // 处理等待队列
+            $this->processWaitingList();
+            
+        } catch(Exception $e) {
+            error_log("Check top slots error: " . $e->getMessage());
+        }
+    }
+
+    // 系统健康检查
+    private function checkSystemHealth() {
+        try {
+            // CPU使用率
+            $cpuUsage = sys_getloadavg()[0];
+            
+            // 内存使用
+            $memoryUsage = memory_get_usage(true);
+            
+            // 磁盘空间
+            $diskFree = disk_free_space("/");
+            
+            if($cpuUsage > 80 || $memoryUsage > 1024*1024*1024 || $diskFree < 1024*1024*1024) {
+                $this->sendAlert("System resources critical!");
+            }
+            
+        } catch(Exception $e) {
+            error_log("System health check error: " . $e->getMessage());
+        }
+    }
+
+    // 发送每日报告
+    private function sendDailyReport() {
+        try {
+            if(date('H:i') === '00:00') {
+                $stats = [
+                    'total_orders' => $this->getTotalOrders(),
+                    'total_revenue' => $this->getTotalRevenue(),
+                    'active_slots' => $this->getActiveSlots(),
+                    'referral_stats' => $this->getReferralStats()
+                ];
+                
+                $this->telegram->sendMessage(
+                    ADMIN_CHAT_ID,
+                    $this->formatDailyReport($stats)
+                );
+            }
+        } catch(Exception $e) {
+            error_log("Send daily report error: " . $e->getMessage());
+        }
+    }
+}

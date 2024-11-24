@@ -1,0 +1,48 @@
+<?php
+// scripts/monitor.php
+
+// 设置无限执行时间
+set_time_limit(0);
+ini_set('memory_limit', '256M');
+
+// 设置时区
+date_default_timezone_set('Asia/Shanghai');
+
+// 自动加载类
+require_once __DIR__ . '/../vendor/autoload.php';
+spl_autoload_register(function ($class) {
+    $file = __DIR__ . '/../app/' . $class . '.php';
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// 创建日志目录
+if (!file_exists(__DIR__ . '/../logs')) {
+    mkdir(__DIR__ . '/../logs', 0755, true);
+}
+
+// 设置错误日志
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/error.log');
+
+try {
+    echo "Starting monitor...\n";
+    
+    // 创建监控实例
+    $monitor = new Monitor();
+    
+    // 注册信号处理
+    pcntl_signal(SIGTERM, function() use ($monitor) {
+        echo "Shutting down...\n";
+        exit;
+    });
+    
+    // 启动监控
+    $monitor->run();
+    
+} catch (Exception $e) {
+    error_log("Monitor script error: " . $e->getMessage());
+    echo "Error: " . $e->getMessage() . "\n";
+    exit(1);
+}

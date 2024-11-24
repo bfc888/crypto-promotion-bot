@@ -1,0 +1,58 @@
+<?php
+// app/TopSlot.php
+class TopSlot {
+    private $db;
+    private $config;
+    
+    public function __construct() {
+        $this->config = require(__DIR__ . '/../config/config.php');
+        $this->db = new PDO(
+            "mysql:host=localhost;dbname=crypto_bot",
+            "your_username",
+            "your_password",
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+    }
+    
+    // 分配置顶位置
+    public function assignSlot($orderId) {
+        try {
+            $order = $this->getOrder($orderId);
+            if(!$order) return false;
+            
+            // 确定级别
+            $tier = $this->determineTier($order['amount']);
+            
+            // 查找可用位置
+            $slot = $this->findAvailableSlot($tier);
+            if($slot !== null) {
+                return $this->occupySlot($tier, $slot, $orderId);
+            }
+            
+            // 如果没有空位，加入等待队列
+            return $this->addToWaitingList($tier, $orderId);
+            
+        } catch(Exception $e) {
+            error_log("Assign slot error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    // 查找可用位置
+    private function findAvailableSlot($tier) {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT position FROM top_slots 
+                 WHERE tier = ? 
+                 AND status = 'active'
+                 ORDER BY position ASC"
+            );
+            
+            $stmt->execute([$tier]);
+            $occupied = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // 查找第一个可用位置
+            $total = $this->config['slots'][$tier]['total'];
+            for($i = 0; $i < $total; $i++) {
+                if(!in_array($i, $occupied)) {
+                    return $i

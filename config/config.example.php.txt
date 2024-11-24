@@ -1,0 +1,148 @@
+<?php
+// config/config.example.php
+return [
+    // 数据库配置
+    'database' => [
+        'host' => 'localhost',
+        'dbname' => 'crypto_bot',
+        'username' => 'your_username',
+        'password' => 'your_password',
+    ],
+
+    // 多链配置
+    'chains' => [
+        'ETH' => [
+            'rpc' => 'YOUR_ETH_RPC_URL',
+            'address' => 'YOUR_ETH_WALLET',
+            'price' => 0.01,
+            'confirmations' => 3
+        ],
+        'BSC' => [
+            'rpc' => 'YOUR_BSC_RPC_URL',
+            'address' => 'YOUR_BSC_WALLET',
+            'price' => 0.05,
+            'confirmations' => 3
+        ],
+        'SOL' => [
+            'rpc' => 'YOUR_SOL_RPC_URL',
+            'address' => 'YOUR_SOL_WALLET',
+            'price' => 1.0,
+            'confirmations' => 32
+        ],
+        'BASE' => [
+            'rpc' => 'YOUR_BASE_RPC_URL',
+            'address' => 'YOUR_BASE_WALLET',
+            'price' => 0.01,
+            'confirmations' => 3
+        ]
+    ],
+
+    // Telegram配置
+    'telegram' => [
+        'token' => 'YOUR_BOT_TOKEN',
+        'admin_chat_id' => 'ADMIN_CHAT_ID',
+        'channel_id' => '@YOUR_CHANNEL'
+    ],
+
+    // 返佣配置
+    'referral' => [
+        'levels' => [
+            1 => 0.30,
+            2 => 0.10,
+            3 => 0.05
+        ],
+        'min_withdrawal' => 0.01,
+        'max_withdrawal' => 10.0,
+        'withdrawal_fee' => 0.001
+    ],
+
+    // 置顶配置
+    'slots' => [
+        'premium' => [
+            'total' => 3,
+            'price_multiplier' => 2.0,
+            'duration' => 86400
+        ],
+        'standard' => [
+            'total' => 5,
+            'price_multiplier' => 1.0,
+            'duration' => 86400
+        ],
+        'basic' => [
+            'total' => 7,
+            'price_multiplier' => 0.5,
+            'duration' => 86400
+        ]
+    ],
+
+    // 系统配置
+    'system' => [
+        'timeout' => 1800,
+        'check_interval' => 60,
+        'log_path' => __DIR__ . '/../logs',
+        'debug' => false
+    ],
+
+    // 安全配置
+    'security' => [
+        'api_key' => 'YOUR_API_KEY',
+        'api_secret' => 'YOUR_API_SECRET',
+        'ip_whitelist' => [
+            '127.0.0.1'
+        ],
+        'rate_limit' => 60 // 每分钟请求次数
+    ]
+];<?php
+return [
+    'chains' => [
+        'ETH' => [
+            'rpc' => 'ETH_RPC_URL',
+            'address' => 'ETH_WALLET',
+            'price' => 0.01,
+            'confirmations' => 3
+        ],
+        'BSC' => [
+            'rpc' => 'BSC_RPC_URL',
+            'address' => 'BSC_WALLET', 
+            'price' => 0.05,
+            'confirmations' => 3
+        ],
+        'SOL' => [
+            'rpc' => 'SOL_RPC_URL',
+            'address' => 'SOL_WALLET',
+            'price' => 1.0,
+            'confirmations' => 32
+        ],
+        'BASE' => [
+            'rpc' => 'BASE_RPC_URL',
+            'address' => 'BASE_WALLET',
+            'price' => 0.01,
+            'confirmations' => 3
+        ]
+    ],
+    'slots' => [
+        'premium' => [
+            'total' => 3,
+            'price_multiplier' => 2.0,
+            'duration' => 86400
+        ],
+        'standard' => [
+            'total' => 5,
+            'price_multiplier' => 1.0,
+            'duration' => 86400
+        ],
+        'basic' => [
+            'total' => 7,
+            'price_multiplier' => 0.5,
+            'duration' => 86400
+        ]
+    ],
+    'referral' => [
+        'levels' => [
+            1 => 0.30,
+            2 => 0.10,
+            3 => 0.05
+        ],
+        'min_withdrawal' => 0.01
+    ]
+];

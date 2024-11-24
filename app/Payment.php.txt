@@ -1,0 +1,69 @@
+<?php
+class Payment {
+    private $db;
+    private $config;
+    
+    public function __construct() {
+        $this->config = require(__DIR__ . '/../config/config.php');
+        $this->db = new PDO(
+            "mysql:host=localhost;dbname=crypto_bot",
+            "your_username",
+            "your_password",
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+    }
+    
+    // 创建订单
+    public function createOrder($userId, $chain) {
+        try {
+            $orderId = $chain . '_' . time() . '_' . $userId;
+            $amount = $this->config['chains'][$chain]['price'];
+            $address = $this->config['chains'][$chain]['address'];
+            
+            $stmt = $this->db->prepare(
+                "INSERT INTO orders (order_id, user_id, chain, amount, address, status, created_at) 
+                 VALUES (?, ?, ?, ?, ?, 'pending', ?)"
+            );
+            
+            $stmt->execute([
+                $orderId,
+                $userId,
+                $chain,
+                $amount,
+                $address,
+                time()
+            ]);
+            
+            return [
+                'order_id' => $orderId,
+                'amount' => $amount,
+                'address' => $address
+            ];
+            
+        } catch(Exception $e) {
+            error_log("Create order error: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // 验证支付
+    public function verifyPayment($orderId, $txHash) {
+        try {
+            $order = $this->getOrder($orderId);
+            if(!$order) return false;
+            
+            switch($order['chain']) {
+                case 'ETH':
+                case 'BSC':
+                case 'BASE':
+                    return $this->verifyEVMPayment($txHash, $order);
+                case 'SOL':
+                    return $this->verifySolPayment($txHash, $order);
+            }
+            
+        } catch(Exception $e) {
+            error_log("Verify payment error: " . $e->getMessage());
+            return false;
+        }
+    }
+}

@@ -1,0 +1,78 @@
+<?php
+// scripts/timeout_check.php
+
+// 设置时区
+date_default_timezone_set('Asia/Shanghai');
+
+// 自动加载类
+require_once __DIR__ . '/../vendor/autoload.php';
+spl_autoload_register(function ($class) {
+    $file = __DIR__ . '/../app/' . $class . '.php';
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// 设置错误日志
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/timeout_error.log');
+
+try {
+    echo "Starting timeout check...\n";
+    
+    // 连接数据库
+    $config = require(__DIR__ . '/../config/config.php');
+    $db = new PDO(
+        "mysql:host=localhost;dbname=crypto_bot",
+        "your_username",
+        "your_password",
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+    
+    // 检查超时订单
+    $stmt = $db->prepare(
+        "SELECT * FROM orders 
+         WHERE status = 'pending' 
+         AND created_at < ?"
+    );
+    
+    $timeoutLimit = time() - 1800; // 30分钟超时
+    $stmt->execute([$timeoutLimit]);
+    
+    foreach ($stmt->fetchAll() as $order) {
+        echo "Processing timeout order: {$order['order_id']}\n";
+        
+        // 更新订单状态
+        $updateStmt = $db->prepare(
+            "UPDATE orders 
+             SET status = 'timeout', 
+             updated_at = ? 
+             WHERE order_id = ?"
+        );
+        
+        $updateStmt->execute([time(), $order['order_id']]);
+        
+        // 释放置顶位置（如果有）
+        $releaseStmt = $db->prepare(
+            "UPDATE top_slots 
+             SET status = 'expired' 
+             WHERE order_id = ?"
+        );
+        
+        $releaseStmt->execute([$order['order_id']]);
+        
+        // 发送通知
+        $telegram = new TelegramBot(TELEGRAM_TOKEN);
+        $telegram->sendMessage(
+            $order['user_id'],
+            "您的订单 {$order['order_id']} 已超时。如需继续，请重新创建订单。"
+        );
+    }
+    
+    echo "Timeout check completed.\n";
+    
+} catch (Exception $e) {
+    error_log("Timeout check error: " . $e->getMessage());
+    echo "Error: " . $e->getMessage() . "\n";
+    exit(1);
+}

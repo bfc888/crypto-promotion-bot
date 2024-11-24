@@ -1,0 +1,104 @@
+<?php
+// app/Referral.php
+class Referral {
+    private $db;
+    private $config;
+
+    public function __construct() {
+        $this->config = require(__DIR__ . '/../config/config.php');
+        $this->db = new PDO(
+            "mysql:host=localhost;dbname=crypto_bot",
+            "your_username",
+            "your_password",
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+    }
+
+    // 生成邀请码
+    public function generateReferralCode($userId) {
+        try {
+            $code = strtoupper(substr(md5($userId . time()), 0, 8));
+            
+            $stmt = $this->db->prepare(
+                "INSERT INTO referral_codes (user_id, code, created_at) 
+                 VALUES (?, ?, ?)"
+            );
+            $stmt->execute([$userId, $code, time()]);
+            
+            return $code;
+            
+        } catch(Exception $e) {
+            error_log("Generate referral code error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // 处理返佣
+    public function processReferralReward($orderId) {
+        try {
+            $this->db->beginTransaction();
+            
+            // 获取订单信息
+            $order = $this->getOrder($orderId);
+            if(!$order) return false;
+            
+            // 获取用户的邀请链
+            $referralChain = $this->getReferralChain($order['user_id']);
+            
+            // 计算并分发返佣
+            foreach($referralChain as $level => $referrerId) {
+                if(!isset($this->config['referral']['levels'][$level])) continue;
+                
+                $rate = $this->config['referral']['levels'][$level];
+                $amount = $order['amount'] * $rate;
+                
+                // 记录返佣
+                $this->recordCommission($referrerId, $amount, $order['chain'], $level, $orderId);
+            }
+            
+            $this->db->commit();
+            return true;
+            
+        } catch(Exception $e) {
+            $this->db->rollBack();
+            error_log("Process referral reward error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // 获取用户统计
+    public function getReferralStats($userId) {
+        try {
+            return [
+                'total_referrals' => $this->getTotalReferrals($userId),
+                'total_earnings' => $this->getTotalEarnings($userId),
+                'pending_rewards' => $this->getPendingRewards($userId),
+                'referral_history' => $this->getReferralHistory($userId)
+            ];
+        } catch(Exception $e) {
+            error_log("Get referral stats error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // 处理提现
+    public function processWithdrawal($userId, $chain, $address, $amount) {
+        try {
+            // 检查余额
+            $balance = $this->getBalance($userId, $chain);
+            if($balance < $amount) return false;
+            
+            // 创建提现记录
+            $withdrawalId = $this->createWithdrawal($userId, $amount, $chain, $address);
+            
+            // 更新余额
+            $this->updateBalance($userId, $chain, -$amount);
+            
+            return $withdrawalId;
+            
+        } catch(Exception $e) {
+            error_log("Process withdrawal error: " . $e->getMessage());
+            return false;
+        }
+    }
+}

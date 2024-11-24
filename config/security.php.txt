@@ -1,0 +1,19 @@
+// config/security.php
+<?php
+return [
+    // API密钥 (用这个简单的方式生成一个)
+    'api_key' => '123456789abcdef',  // 建议改成更复杂的
+    
+    // 允许的IP (填写您的服务器IP)
+    'allowed_ips' => [
+        '127.0.0.1',
+        '61.111.244.122'  // 把这里改成您的服务器IP
+    ],
+    
+    // 基础限制
+    'limits' => [
+        'max_amount' => 1.0,      // 最大交易金额
+        'min_amount' => 0.01,     // 最小交易金额
+        'daily_limit' => 10.0     // 每日限额
+    ]
+];
